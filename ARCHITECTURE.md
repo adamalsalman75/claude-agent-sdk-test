@@ -6,6 +6,8 @@ The **Claude Agent SDK** is a Python library that provides programmatic access t
 
 ## Relationship: Claude Agent SDK ↔ Claude Code
 
+**Important:** Claude Agent SDK is NOT independent of Claude Code - it's a programmatic wrapper that embeds Claude Code within your Python application.
+
 ```
 ┌─────────────────────────────────────┐
 │   Your Python Application           │
@@ -14,7 +16,7 @@ The **Claude Agent SDK** is a Python library that provides programmatic access t
 │   │  Claude Agent SDK           │   │
 │   │  (Python Library)           │   │
 │   └─────────────────────────────┘   │
-│              ↓                      │
+│              ↓ embeds/wraps         │
 │   ┌─────────────────────────────┐   │
 │   │  Claude Code Engine         │   │
 │   │  (Built-in Tools)           │   │
@@ -31,10 +33,19 @@ The **Claude Agent SDK** is a Python library that provides programmatic access t
 ```
 
 **Key Points:**
-- Claude Agent SDK wraps Claude Code's capabilities
-- Built-in tools (Bash, Read, Write, etc.) come from Claude Code
-- SDK creates an "in-process" version of Claude Code within your Python app
-- You get programmatic access to all of Claude Code's powerful tooling
+- **Claude Agent SDK = Programmatic API for Claude Code**
+- Claude Code runs embedded within your Python process when you use the SDK
+- Built-in tools (Bash, Read, Write, WebSearch, etc.) are **Claude Code's tools**, not SDK-specific
+- You get ALL of Claude Code's capabilities programmatically
+- The SDK provides the same power as running `claude-code` CLI, but with Python control
+
+**Verified in Practice:**
+When you create a `ClaudeSDKClient`, the `SystemMessage` shows all Claude Code tools are available:
+```python
+'tools': ['Task', 'Bash', 'Glob', 'Grep', 'Read', 'Write', 'Edit',
+          'WebSearch', 'TodoWrite', 'NotebookEdit', ...]
+```
+These aren't SDK tools - they're Claude Code's tools exposed programmatically!
 
 ## Core Components
 
@@ -129,6 +140,39 @@ These tools are provided by **Claude Code**:
 Your custom tools (prefixed with `mcp__`) are added via MCP servers.
 
 ## Adding Custom Tools via MCP
+
+### Why MCP is Required for Custom Tools
+
+**Important:** Claude Agent SDK **only** supports custom tools through MCP servers. You cannot define tools directly like you can with the Anthropic SDK.
+
+**Why?** Claude Agent SDK embeds Claude Code, which uses MCP as its tool protocol. All tools - both built-in (Bash, Read, etc.) and custom - must be MCP-compatible.
+
+**Two Options for Custom Tools:**
+
+1. **In-process MCP server** (what we used in `agent.py`):
+   - Created with `@tool` decorator + `create_sdk_mcp_server()`
+   - Runs within your Python process
+   - Simple for local logic
+   - Similar to Spring AI's `@Bean ToolCallbackProvider`
+
+2. **Remote MCP server** (like your Spring Boot servers):
+   - Already running on HTTP/SSE
+   - Connected via URL + headers
+   - Shared across multiple clients
+   - Production-grade with OAuth2 security
+
+**This is different from using Anthropic SDK directly**, where you can pass tool schemas without MCP:
+```python
+# Anthropic SDK - Direct tool definition (NO MCP)
+client.messages.create(
+    tools=[{"type": "custom", "name": "search", ...}]  # Direct schema
+)
+
+# Claude Agent SDK - MUST use MCP
+options = ClaudeAgentOptions(
+    mcp_servers={"search": create_sdk_mcp_server(...)}  # MCP required
+)
+```
 
 ### Step 1: Define a Tool
 

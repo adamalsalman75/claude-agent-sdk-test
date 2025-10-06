@@ -53,11 +53,25 @@ Your **ai-content-engine** project already has a sophisticated MCP architecture 
 - **Location**: `authorisation-server/`
 
 ### 2. MCP Servers (Spring Boot)
-- **Finance MCP** (Port 8081): Financial data tools (220+ tools total across all servers)
-- **Discovery MCP** (Port 8084): News, RSS, academic search
-- **STEM MCP** (mentioned in docs): NASA, environment, medical data
+- **Finance MCP**: https://finance.macrospire.com - Financial data tools
+- **Discovery MCP**: https://discovery.macrospire.com - News, RSS, academic search
+- **STEM MCP**: https://stem.macrospire.com - NASA, environment, medical data
+
+**(220+ tools total across all servers)**
 
 **Security**: All MCP servers require JWT Bearer tokens from the Authorization Server
+
+**Production URLs** (GKE):
+- Finance: `https://finance.macrospire.com/mcp`
+- Discovery: `https://discovery.macrospire.com/mcp`
+- STEM: `https://stem.macrospire.com/mcp`
+- Auth Server: `https://auth.macrospire.com/oauth2/token`
+
+**Local Development URLs**:
+- Finance: `http://localhost:8081/mcp`
+- Discovery: `http://localhost:8084/mcp`
+- STEM: `http://localhost:8082/mcp`
+- Auth Server: `http://localhost:9090/oauth2/token`
 
 ### 3. Content Engine MCP Client (Java)
 - Uses `OAuth2McpTokenProvider` to get tokens via client_credentials
@@ -367,16 +381,33 @@ if __name__ == "__main__":
 
 Create `.env` file in your Python agent project:
 
+### Production (GKE)
 ```bash
-# OAuth2 Configuration (same as your Java content-engine)
-AUTH_SERVER_TOKEN_URL=http://localhost:9090/oauth2/token
-MCP_CLIENT_ID=your-client-id
+# OAuth2 Configuration
+AUTH_SERVER_TOKEN_URL=https://auth.macrospire.com/oauth2/token
+MCP_CLIENT_ID=python-agent
 MCP_CLIENT_SECRET=your-client-secret
 
-# MCP Server URLs
-FINANCE_MCP_URL=http://localhost:8081
-DISCOVERY_MCP_URL=http://localhost:8084
-STEM_MCP_URL=http://localhost:8085  # If you have STEM server
+# MCP Server URLs (Production)
+FINANCE_MCP_URL=https://finance.macrospire.com/mcp
+DISCOVERY_MCP_URL=https://discovery.macrospire.com/mcp
+STEM_MCP_URL=https://stem.macrospire.com/mcp
+
+# Anthropic API
+ANTHROPIC_API_KEY=your-anthropic-api-key
+```
+
+### Local Development
+```bash
+# OAuth2 Configuration
+AUTH_SERVER_TOKEN_URL=http://localhost:9090/oauth2/token
+MCP_CLIENT_ID=python-agent
+MCP_CLIENT_SECRET=your-client-secret
+
+# MCP Server URLs (Local)
+FINANCE_MCP_URL=http://localhost:8081/mcp
+DISCOVERY_MCP_URL=http://localhost:8084/mcp
+STEM_MCP_URL=http://localhost:8082/mcp
 
 # Anthropic API
 ANTHROPIC_API_KEY=your-anthropic-api-key
@@ -386,23 +417,77 @@ ANTHROPIC_API_KEY=your-anthropic-api-key
 
 Your Python agent will use the **same OAuth2 flow** as your Java content-engine:
 
-1. **Client Registration**: Register a new OAuth2 client in your Spring Authorization Server for the Python agent
+1. **Client Registration**: You have two options for OAuth2 credentials
 2. **Grant Type**: `client_credentials`
-3. **Scope**: Same scopes your Java client uses (e.g., `mcp.read`)
+3. **Scopes**: `mcp:read`, `mcp:write`, `mcp:tools`
 4. **Token Endpoint**: `http://localhost:9090/oauth2/token` (or production URL)
 
-**Register client in Authorization Server:**
+### Option 1: Reuse Existing Client (Quick Start)
+
+Use the same OAuth2 client credentials that your `content-engine` already uses to connect to MCP servers.
+
+**Pros:**
+- ✅ No Authorization Server changes needed
+- ✅ Start testing immediately
+- ✅ Works with existing infrastructure
+
+**Cons:**
+- ⚠️ Both clients share same identity
+- ⚠️ Can't differentiate traffic in logs
+
+**Setup:**
+```bash
+# Copy from your content-engine/.env (DO NOT commit these to git!)
+MCP_CLIENT_ID=<same-as-content-engine>
+MCP_CLIENT_SECRET=<same-as-content-engine>
+```
+
+**Where to find these:** Check `content-engine/.env` or `content-engine/src/main/resources/application.yaml` for:
+- `${MCP_CLIENT_ID:...}`
+- `${MCP_CLIENT_SECRET:...}`
+
+### Option 2: Register New Client (Production Recommended)
+
+Create a dedicated OAuth2 client for your Python agent in the Authorization Server.
+
+**Pros:**
+- ✅ Separate client identities
+- ✅ Better security auditing
+- ✅ Can revoke Python agent access independently
+- ✅ Clearer logs and monitoring
+
+**Cons:**
+- ⚠️ Requires Authorization Server code change and redeployment
+
+**Register new client in Authorization Server:**
 
 ```java
 // In your Spring Authorization Server configuration
+// (authorisation-server/src/main/java/.../config/AuthorizationServerConfig.java)
+
 RegisteredClient pythonAgent = RegisteredClient.withId(UUID.randomUUID().toString())
     .clientId("python-agent")
-    .clientSecret(passwordEncoder.encode("python-agent-secret"))
+    .clientSecret(passwordEncoder.encode("YOUR_SECRET_HERE"))  // Use strong secret
     .clientAuthenticationMethod(ClientAuthenticationMethod.CLIENT_SECRET_BASIC)
     .authorizationGrantType(AuthorizationGrantType.CLIENT_CREDENTIALS)
-    .scope("mcp.read")
+    .scope("mcp:read")
+    .scope("mcp:write")
+    .scope("mcp:tools")
     .build();
 ```
+
+**Then in your Python agent `.env`:**
+```bash
+MCP_CLIENT_ID=python-agent
+MCP_CLIENT_SECRET=YOUR_SECRET_HERE  # Same secret you used above
+```
+
+**Important Security Notes:**
+- ⚠️ **NEVER commit `.env` files to git** - they contain secrets
+- ✅ The `.gitignore` already excludes `.env`
+- ✅ Use strong, random secrets (e.g., generate with `openssl rand -hex 32`)
+- ✅ Rotate secrets periodically in production
+- ✅ Store production secrets in secret manager (GCP Secret Manager, etc.)
 
 ## Benefits of This Approach
 
