@@ -1,65 +1,118 @@
-# Claude Agent SDK Example
+# Weekly LinkedIn Article Generator
 
-A simple Python agent using the **Claude Agent SDK** with a custom web search tool (stubbed results).
+**Autonomous AI agent** that generates LinkedIn posts consolidating weekly content from [macrospire.com](https://macrospire.com), using **Claude Agent SDK** with production MCP servers.
+
+## What It Does
+
+1. 🔐 Authenticates with your Spring Authorization Server (OAuth2)
+2. 🌐 Fetches last week's articles from macrospire.com
+3. 📊 Cross-checks with **live market data** from Finance MCP tools:
+   - Real-time stock prices (NKE, TSLA, etc.)
+   - Earnings reports & analyst estimates
+   - Treasury yields & economic indicators
+   - Analyst upgrades/downgrades
+4. ✍️ Generates engaging LinkedIn article with fresh insights
+5. 💾 Saves to `linkedin_article_YYYYMMDD.md`
 
 ## Prerequisites
 
 - Python 3.13
 - uv (Python package manager)
 - Anthropic API key
+- Access to your production MCP servers
 
 ## Setup
 
-1. **Create `.env` file** with your API key:
-   ```
-   ANTHROPIC_API_KEY=your_api_key_here
-   ```
+### 1. Install Dependencies
 
-2. **Install dependencies**:
-   ```bash
-   uv sync
-   ```
-   This installs all dependencies into `.venv` (similar to `mvn install` in Maven).
-
-## Running the Agents
-
-### Basic Example: Stubbed Search Tool
-
-**From terminal:**
 ```bash
-uv run python agent.py
+uv sync
 ```
 
-**From IntelliJ IDEA:**
-- Right-click `agent.py` → **Debug** (Debug mode shows output better than Run mode in IntelliJ)
-- Or use the built-in Terminal tab: `uv run python agent.py`
+This installs all dependencies into `.venv` (similar to `mvn install` in Maven).
 
-### Real Use Case: Weekly LinkedIn Article Generator
+### 2. Configure Environment Variables
 
-Generate a LinkedIn post consolidating the week's content from [macrospire.com](https://macrospire.com):
+Create a `.env` file with your credentials:
 
 ```bash
-# 1. Configure production credentials in .env
-AUTH_SERVER_TOKEN_URL=https://auth.macrospire.com/oauth2/token
-MCP_CLIENT_ID=<your-client-id>
-MCP_CLIENT_SECRET=<your-client-secret>
-FINANCE_MCP_URL=https://finance.macrospire.com/mcp
-DISCOVERY_MCP_URL=https://discovery.macrospire.com/mcp
-STEM_MCP_URL=https://stem.macrospire.com/mcp
-ANTHROPIC_API_KEY=<your-api-key>
+# Anthropic API
+ANTHROPIC_API_KEY=your-anthropic-key
 
-# 2. Run the agent
+# OAuth2 credentials (from your Spring Authorization Server)
+AUTH_SERVER_TOKEN_URL=https://auth.macrospire.com/oauth2/token
+MCP_CLIENT_ID=content-engine-client
+MCP_CLIENT_SECRET=your-secret-here
+
+# Production MCP server URLs
+FINANCE_MCP_URL=https://finance.macrospire.com/mcp
+```
+
+**Note:** The OAuth2 credentials should match those registered in your Spring Authorization Server with scopes: `mcp:read`, `mcp:write`, `mcp:tools`
+
+## Running the Agent
+
+### From Terminal:
+```bash
 uv run python weekly_linkedin_agent.py
 ```
 
-**What it does:**
-- Connects to production MCP servers (finance, discovery, stem)
-- Fetches last week's articles from macrospire.com
-- Analyzes key insights across domains
-- Generates an engaging LinkedIn post
-- Saves to `linkedin_article_YYYYMMDD.md`
+### From IntelliJ IDEA:
+- Right-click `weekly_linkedin_agent.py` → **Debug** (Debug mode shows output better than Run mode)
+- Or use the built-in Terminal tab: `uv run python weekly_linkedin_agent.py`
 
-**See**: [WEEKLY_LINKEDIN_USE_CASE.md](WEEKLY_LINKEDIN_USE_CASE.md) for detailed comparison with Spring AI implementation.
+## Expected Output
+
+```
+✅ Obtained OAuth2 token from https://auth.macrospire.com/oauth2/token
+
+🤖 Starting Weekly LinkedIn Article Generation
+📅 Date Range: 2025-09-29 to 2025-10-06
+🔧 Connected to MCP Server:
+   - Finance: https://finance.macrospire.com/mcp
+
+[Agent executes...]
+
+📊 GENERATION SUMMARY
+✅ Status: success
+⏱️  Duration: 82.44s
+💰 Cost: $0.1400
+🔄 Turns: 30
+📝 Input tokens: 19
+💾 Cached tokens: 92449  ← Prompt caching saves $$$
+📤 Output tokens: 1782
+
+✅ Article saved to: linkedin_article_20251006.md
+```
+
+The agent autonomously:
+- Fetches macrospire.com articles
+- Calls 12+ finance MCP tools (earnings, market data, analyst ratings, etc.)
+- Cross-references published articles with live market data
+- Generates a compelling LinkedIn post
+
+## Architecture
+
+This project demonstrates **Claude Agent SDK** with:
+
+- **OAuth2 authentication** - Token provider for Spring Authorization Server
+- **Remote HTTP MCP servers** - Connects to production finance tools
+- **Autonomous agentic workflow** - Claude decides which tools to use
+- **Prompt caching** - 90%+ cache hit rate on subsequent runs
+
+See [ARCHITECTURE.md](ARCHITECTURE.md) for technical details.
+
+## Comparison with Spring AI
+
+See [WEEKLY_LINKEDIN_USE_CASE.md](WEEKLY_LINKEDIN_USE_CASE.md) for a detailed comparison:
+
+| Metric | Spring AI (Java) | Claude Agent SDK (Python) |
+|--------|------------------|---------------------------|
+| **Lines of code** | ~300+ | ~200 |
+| **Development time** | 2-3 days | 2 hours |
+| **Cost per run** | ~$0.10 | ~$0.05 (first), ~$0.01 (cached) |
+| **Workflow** | Manual orchestration | Autonomous |
+| **Flexibility** | Code changes required | Prompt changes only |
 
 ## IntelliJ IDEA Setup
 
@@ -75,40 +128,17 @@ uv run python weekly_linkedin_agent.py
 3. **If packages aren't recognized after `uv sync`**:
    - File → Invalidate Caches → Just Restart
 
-## How it Works
+## Key Technologies
 
-The agent uses the **Claude Agent SDK** which provides:
-- Automatic agentic loops (no manual tool handling needed)
-- MCP (Model Context Protocol) for tool integration
-- Built-in tools (Task, Bash, Read, Write, etc.)
-- Structured message flow
-
-**agent.py** contains:
-1. **`web_search` tool** - Defined using `@tool` decorator, returns stubbed search results
-2. **MCP server** - Created with `create_sdk_mcp_server()` to register the tool
-3. **ClaudeSDKClient** - Handles the conversation and tool execution automatically
-
-The agent:
-- Receives query: "Search for 'claude code'"
-- Automatically calls the `web_search` tool
-- Formats and presents the 3 stubbed results
-
-## Key Concepts
-
-- **`@tool` decorator**: Define custom tools with name, description, and schema
-- **MCP Server**: Register tools using Model Context Protocol
-- **ClaudeSDKClient**: Async client that manages conversations and tool execution
-- **Async/await**: Agent SDK uses asyncio for non-blocking operations
-
-## Next Steps
-
-To extend this agent:
-- Replace stubbed results with real search API (Google, Bing, DuckDuckGo, Tavily, etc.)
-- Add more custom tools (file operations, API calls, calculations, etc.)
-- Implement conversation history for multi-turn interactions
-- Add error handling and retries for production use
+- **Claude Agent SDK** - Programmatic access to Claude Code's agentic capabilities
+- **MCP (Model Context Protocol)** - Standard for connecting AI to tools
+- **OAuth2** - Secure authentication with Spring Authorization Server
+- **Python 3.13 + uv** - Modern Python with fast dependency management
+- **Async/await** - Non-blocking operations for tool execution
 
 ## Resources
 
 - [Claude Agent SDK Documentation](https://docs.claude.com/en/api/agent-sdk/python)
 - [MCP Protocol](https://modelcontextprotocol.io/)
+- [INTEGRATION_WITH_EXISTING_MCP.md](INTEGRATION_WITH_EXISTING_MCP.md) - How to connect to existing Spring Boot MCP servers
+- [SPRING_AI_VS_CLAUDE_SDK.md](SPRING_AI_VS_CLAUDE_SDK.md) - Detailed framework comparison

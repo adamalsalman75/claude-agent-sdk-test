@@ -2,9 +2,9 @@
 Weekly LinkedIn Article Generator using Claude Agent SDK
 
 This agent:
-1. Connects to your production MCP servers (finance, discovery, stem)
+1. Connects to your production finance MCP server
 2. Retrieves the week's published articles from macrospire.com
-3. Analyzes and consolidates key insights
+3. Cross-checks articles with latest market data using finance tools
 4. Generates a compelling LinkedIn post summarizing the week's content
 
 Compares to: Your Spring AI ContentOrchestrationService multi-agent workflow
@@ -103,6 +103,8 @@ async def generate_weekly_linkedin_article():
             "mcp__finance__*",  # All finance tools for cross-checking
             "WebFetch",         # Built-in: fetch macrospire.com content
         ],
+        # Use bypassPermissions mode to allow MCP tools without approval prompts
+        permission_mode="bypassPermissions",
         system_prompt=f"""
         You are a content strategist for Macrospire, a finance-focused blog.
 
@@ -129,10 +131,8 @@ async def generate_weekly_linkedin_article():
 
     print(f"\n🤖 Starting Weekly LinkedIn Article Generation")
     print(f"📅 Date Range: {date_range}")
-    print(f"🔧 Connected to MCP Servers:")
+    print(f"🔧 Connected to MCP Server:")
     print(f"   - Finance: {os.getenv('FINANCE_MCP_URL')}")
-    print(f"   - Discovery: {os.getenv('DISCOVERY_MCP_URL')}")
-    print(f"   - STEM: {os.getenv('STEM_MCP_URL')}")
     print(f"\n{'=' * 80}\n")
 
     # Run the agent
