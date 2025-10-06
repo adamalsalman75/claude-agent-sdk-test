@@ -88,7 +88,7 @@ async def generate_weekly_linkedin_article():
     week_ago = today - timedelta(days=7)
     date_range = f"{week_ago.strftime('%Y-%m-%d')} to {today.strftime('%Y-%m-%d')}"
 
-    # Configure Claude Agent SDK with your production MCP servers
+    # Configure Claude Agent SDK with finance MCP server only
     options = ClaudeAgentOptions(
         model="claude-sonnet-4-5-20250929",
         mcp_servers={
@@ -96,44 +96,34 @@ async def generate_weekly_linkedin_article():
                 "type": "http",
                 "url": os.getenv("FINANCE_MCP_URL"),
                 "headers": {"Authorization": f"Bearer {token}"}
-            },
-            "discovery": {
-                "type": "http",
-                "url": os.getenv("DISCOVERY_MCP_URL"),
-                "headers": {"Authorization": f"Bearer {token}"}
-            },
-            "stem": {
-                "type": "http",
-                "url": os.getenv("STEM_MCP_URL"),
-                "headers": {"Authorization": f"Bearer {token}"}
             }
         },
-        # Allow tools from all MCP servers + built-in tools
+        # Allow finance MCP tools + built-in tools
         allowed_tools=[
-            "mcp__finance__*",
-            "mcp__discovery__*",
-            "mcp__stem__*",
-            "WebFetch",  # Built-in: fetch macrospire.com content
-            "Read",      # Built-in: if needed
+            "mcp__finance__*",  # All finance tools for cross-checking
+            "WebFetch",         # Built-in: fetch macrospire.com content
         ],
         system_prompt=f"""
-        You are a content strategist for Macrospire, a multi-domain content platform
-        covering finance, STEM, and discovery topics.
+        You are a content strategist for Macrospire, a finance-focused blog.
 
         Your task: Create a compelling LinkedIn article that consolidates this week's
         published content ({date_range}).
 
-        IMPORTANT: Macrospire.com is the blog at https://macrospire.com. You should:
+        IMPORTANT: Macrospire.com is at https://macrospire.com. You should:
         1. Fetch the homepage or recent articles from macrospire.com
-        2. Identify the key articles published in the past week
-        3. Use the MCP tools (finance, discovery, stem) to enrich context if needed
+        2. Identify the key finance articles published in the past week
+        3. **CROSS-CHECK with Finance MCP Tools**: For each article:
+           - Use finance tools to get the latest market data, earnings, economic indicators
+           - Verify claims made in the articles with fresh data
+           - Add updated context (e.g., "Since we published, stock moved 5%")
         4. Write a LinkedIn-style article (3-5 paragraphs) that:
-           - Highlights the week's most interesting insights
-           - Connects themes across domains (finance + science + discovery)
-           - Uses engaging language suitable for LinkedIn
+           - Highlights the week's most interesting financial insights
+           - Mentions fresh data/updates you discovered via finance MCP tools
+           - Uses engaging, professional language suitable for LinkedIn
            - Includes a call-to-action to visit macrospire.com
 
-        Be autonomous: decide which tools to use and how to structure the research.
+        Be thorough: actively use finance MCP tools to validate and enhance with latest data.
+        Don't just summarize - add new insights from fresh financial data.
         """
     )
 
