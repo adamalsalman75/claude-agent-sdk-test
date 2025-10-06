@@ -21,7 +21,9 @@ A simple Python agent using the **Claude Agent SDK** with a custom web search to
    ```
    This installs all dependencies into `.venv` (similar to `mvn install` in Maven).
 
-## Running the Agent
+## Running the Agents
+
+### Basic Example: Stubbed Search Tool
 
 **From terminal:**
 ```bash
@@ -31,6 +33,33 @@ uv run python agent.py
 **From IntelliJ IDEA:**
 - Right-click `agent.py` → **Debug** (Debug mode shows output better than Run mode in IntelliJ)
 - Or use the built-in Terminal tab: `uv run python agent.py`
+
+### Real Use Case: Weekly LinkedIn Article Generator
+
+Generate a LinkedIn post consolidating the week's content from [macrospire.com](https://macrospire.com):
+
+```bash
+# 1. Configure production credentials in .env
+AUTH_SERVER_TOKEN_URL=https://auth.macrospire.com/oauth2/token
+MCP_CLIENT_ID=<your-client-id>
+MCP_CLIENT_SECRET=<your-client-secret>
+FINANCE_MCP_URL=https://finance.macrospire.com/mcp
+DISCOVERY_MCP_URL=https://discovery.macrospire.com/mcp
+STEM_MCP_URL=https://stem.macrospire.com/mcp
+ANTHROPIC_API_KEY=<your-api-key>
+
+# 2. Run the agent
+uv run python weekly_linkedin_agent.py
+```
+
+**What it does:**
+- Connects to production MCP servers (finance, discovery, stem)
+- Fetches last week's articles from macrospire.com
+- Analyzes key insights across domains
+- Generates an engaging LinkedIn post
+- Saves to `linkedin_article_YYYYMMDD.md`
+
+**See**: [WEEKLY_LINKEDIN_USE_CASE.md](WEEKLY_LINKEDIN_USE_CASE.md) for detailed comparison with Spring AI implementation.
 
 ## IntelliJ IDEA Setup
 
