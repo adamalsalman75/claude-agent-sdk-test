@@ -102,9 +102,9 @@ This project demonstrates **Claude Agent SDK** with:
 
 See [ARCHITECTURE.md](ARCHITECTURE.md) for technical details.
 
-## Comparison with Spring AI
+## Why This Approach?
 
-See [WEEKLY_LINKEDIN_USE_CASE.md](WEEKLY_LINKEDIN_USE_CASE.md) for a detailed comparison:
+Compared to manual multi-agent orchestration (like Spring AI's ContentOrchestrationService):
 
 | Metric | Spring AI (Java) | Claude Agent SDK (Python) |
 |--------|------------------|---------------------------|
@@ -140,5 +140,4 @@ See [WEEKLY_LINKEDIN_USE_CASE.md](WEEKLY_LINKEDIN_USE_CASE.md) for a detailed co
 
 - [Claude Agent SDK Documentation](https://docs.claude.com/en/api/agent-sdk/python)
 - [MCP Protocol](https://modelcontextprotocol.io/)
-- [INTEGRATION_WITH_EXISTING_MCP.md](INTEGRATION_WITH_EXISTING_MCP.md) - How to connect to existing Spring Boot MCP servers
-- [SPRING_AI_VS_CLAUDE_SDK.md](SPRING_AI_VS_CLAUDE_SDK.md) - Detailed framework comparison
+- [ARCHITECTURE.md](ARCHITECTURE.md) - Technical architecture and MCP integration details
